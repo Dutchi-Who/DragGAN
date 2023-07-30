@@ -1,0 +1,17 @@
+1. wsl2需要配置代理，可以选择按照 https://zhuanlan.zhihu.com/p/640242841?utm_id=0 这篇文章的方法在wsl2内部配置proxy，也可以让clash开启 TUN 模式，虚拟网卡。
+
+2. 检查一下miniconda的pytorch是不是GPU版本，如果不是需要自己安装。
+
+conda activate stylegan3
+pip uninstall torch torchvision torchaudio
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+
+3. 删除 AppData/Local/torch_extensions/目录下的Cache（好吧我这里没用）
+
+4. 将 CUDA Toolkit 从 12.x 降级到 11.8。
+https://developer.nvidia.com/cuda-11-8-0-download-archive?target_os=Windows&target_arch=x86_64&target_version=11&target_type=exe_local
+
+5. 将 pillow 库降级到 9.5.0
+
+pip uninstall pillow
+pip install pillow==9.5.0
