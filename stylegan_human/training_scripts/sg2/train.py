@@ -20,7 +20,7 @@ import torch
 import dnnlib
 
 import ast
-from training import training_loop
+from ...training import training_loop
 from metrics import metric_main
 from torch_utils import training_stats
 from torch_utils import custom_ops
