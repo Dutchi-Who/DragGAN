@@ -15,7 +15,7 @@ from gradio_utils import (ImageMask, draw_mask_on_image, draw_points_on_image,
 from viz.renderer import Renderer, add_watermark_np
 
 parser = ArgumentParser()
-parser.add_argument('--share', action='store_true',default='True')
+parser.add_argument('--share', action='store_true', default='True')
 parser.add_argument('--cache-dir', type=str, default='./checkpoints')
 parser.add_argument(
     "--listen",
@@ -58,6 +58,10 @@ def clear_state(global_state, target=None):
     return global_state
 
 
+# init_w_pivot = torch.load("checkpoints/0.pt")
+init_w_pivot = None
+
+
 def init_images(global_state):
     """This function is called only ones with Gradio App is started.
     0. pre-process global_state, unpack value from global_state of need
@@ -76,7 +80,7 @@ def init_images(global_state):
         state['generator_params'],  # res
         valid_checkpoints_dict[state['pretrained_weight']],  # pkl
         state['params']['seed'],  # w0_seed,
-        None,  # w_load
+        init_w_pivot,  # w_load
         state['params']['latent_space'] == 'w+',  # w_plus
         'const',
         state['params']['trunc_psi'],  # trunc_psi,
@@ -100,7 +104,6 @@ def init_images(global_state):
 
 
 def update_image_draw(image, points, mask, show_mask, global_state=None):
-
     image_draw = draw_points_on_image(image, points)
     if show_mask and mask is not None and not (mask == 0).all() and not (
             mask == 1).all():
@@ -161,10 +164,10 @@ print(os.listdir(cache_dir))
 print('Valid checkpoint file:')
 print(valid_checkpoints_dict)
 
-init_pkl = 'stylegan2_lions_512_pytorch'
+# init_pkl = 'stylegan2_huang_CFMFEZGEQNFC_512_pytorch'  # don't add .pkl suffix
+init_pkl = "stylegan2-lhq-256x256"  # don't add .pkl suffix
 
 with gr.Blocks() as app:
-
     # renderer = Renderer()
     global_state = gr.State({
         "images": {
@@ -176,7 +179,7 @@ with gr.Blocks() as app:
             # stop
         },
         'mask':
-        None,  # mask for visualization, 1 for editing and 0 for unchange
+            None,  # mask for visualization, 1 for editing and 0 for unchange
         'last_mask': None,  # last edited mask
         'show_mask': True,  # add button
         "generator_params": dnnlib.EasyDict(),
@@ -207,13 +210,10 @@ with gr.Blocks() as app:
     with gr.Row():
 
         with gr.Row():
-
             # Left --> tools
             with gr.Column(scale=3):
-
                 # Pickle
                 with gr.Row():
-
                     with gr.Column(scale=1, min_width=10):
                         gr.Markdown(value='Pickle', show_label=False)
 
@@ -307,8 +307,8 @@ with gr.Blocks() as app:
                 form_image = ImageMask(
                     value=global_state.value['images']['image_show'],
                     brush_radius=20).style(
-                        width=768,
-                        height=768)  # NOTE: hard image size code here.
+                    width=768,
+                    height=768)  # NOTE: hard image size code here.
     gr.Markdown("""
         ## Quick Start
 
@@ -346,6 +346,7 @@ with gr.Blocks() as app:
         </div>
         """)
 
+
     # Network & latents tab listeners
     def on_change_pretrained_dropdown(pretrained_value, global_state):
         """Function to handle model change.
@@ -359,11 +360,13 @@ with gr.Blocks() as app:
 
         return global_state, global_state["images"]['image_show']
 
+
     form_pretrained_dropdown.change(
         on_change_pretrained_dropdown,
         inputs=[form_pretrained_dropdown, global_state],
         outputs=[global_state, form_image],
     )
+
 
     def on_click_reset_image(global_state):
         """Reset image to the original one and clear all states
@@ -376,11 +379,13 @@ with gr.Blocks() as app:
 
         return global_state, global_state['images']['image_show']
 
+
     form_reset_image.click(
         on_click_reset_image,
         inputs=[global_state],
         outputs=[global_state, form_image],
     )
+
 
     # Update parameters
     def on_change_update_image_seed(seed, global_state):
@@ -395,11 +400,13 @@ with gr.Blocks() as app:
 
         return global_state, global_state['images']['image_show']
 
+
     form_seed_number.change(
         on_change_update_image_seed,
         inputs=[form_seed_number, global_state],
         outputs=[global_state, form_image],
     )
+
 
     def on_click_latent_space(latent_space, global_state):
         """Function to reset latent space to optimize.
@@ -414,6 +421,7 @@ with gr.Blocks() as app:
 
         return global_state, global_state['images']['image_show']
 
+
     form_latent_space.change(on_click_latent_space,
                              inputs=[form_latent_space, global_state],
                              outputs=[global_state, form_image])
@@ -424,6 +432,7 @@ with gr.Blocks() as app:
         inputs=[form_lambda_number, global_state],
         outputs=[global_state],
     )
+
 
     def on_change_lr(lr, global_state):
         if lr == 0:
@@ -437,11 +446,13 @@ with gr.Blocks() as app:
             print(renderer.w_optim)
         return global_state
 
+
     form_lr_number.change(
         on_change_lr,
         inputs=[form_lr_number, global_state],
         outputs=[global_state],
     )
+
 
     def on_click_start(global_state, image):
         p_in_pixels = []
@@ -642,6 +653,7 @@ with gr.Blocks() as app:
                 gr.Number.update(interactive=True),
             )
 
+
     form_start_btn.click(
         on_click_start,
         inputs=[global_state, form_image],
@@ -669,6 +681,7 @@ with gr.Blocks() as app:
         ],
     )
 
+
     def on_click_stop(global_state):
         """Function to handle stop button is clicked.
         1. send a stop signal by set global_state["temporal_params"]["stop"] as True
@@ -677,6 +690,7 @@ with gr.Blocks() as app:
         global_state["temporal_params"]["stop"] = True
 
         return global_state, gr.Button.update(interactive=False)
+
 
     form_stop_btn.click(on_click_stop,
                         inputs=[global_state],
@@ -692,6 +706,7 @@ with gr.Blocks() as app:
         outputs=[global_state],
     )
 
+
     def on_click_remove_point(global_state):
         choice = global_state["curr_point"]
         del global_state["points"][choice]
@@ -705,6 +720,7 @@ with gr.Blocks() as app:
             gr.Dropdown.update(choices=choices, value=choices[0]),
             global_state,
         )
+
 
     # Mask
     def on_click_reset_mask(global_state):
@@ -721,11 +737,13 @@ with gr.Blocks() as app:
                                        global_state['show_mask'], global_state)
         return global_state, image_draw
 
+
     form_reset_mask_btn.click(
         on_click_reset_mask,
         inputs=[global_state],
         outputs=[global_state, form_image],
     )
+
 
     # Image
     def on_click_enable_draw(global_state, image):
@@ -743,6 +761,7 @@ with gr.Blocks() as app:
         return (global_state,
                 gr.Image.update(value=image_draw, interactive=True))
 
+
     def on_click_remove_draw(global_state, image):
         """Function to start remove mask mode.
         1. Preprocess mask info from last state
@@ -758,12 +777,14 @@ with gr.Blocks() as app:
         return (global_state,
                 gr.Image.update(value=image_draw, interactive=True))
 
+
     enable_add_mask.click(on_click_enable_draw,
                           inputs=[global_state, form_image],
                           outputs=[
                               global_state,
                               form_image,
                           ])
+
 
     def on_click_add_point(global_state, image: dict):
         """Function switch from add mask mode to add points mode.
@@ -782,9 +803,11 @@ with gr.Blocks() as app:
         return (global_state,
                 gr.Image.update(value=image_draw, interactive=False))
 
+
     enable_add_points.click(on_click_add_point,
                             inputs=[global_state, form_image],
                             outputs=[global_state, form_image])
+
 
     def on_click_image(global_state, evt: gr.SelectData):
         """This function only support click for point selection
@@ -820,11 +843,13 @@ with gr.Blocks() as app:
 
         return global_state, image_draw
 
+
     form_image.select(
         on_click_image,
         inputs=[global_state],
         outputs=[global_state, form_image],
     )
+
 
     def on_click_clear_points(global_state):
         """Function to handle clear all control points
@@ -842,9 +867,11 @@ with gr.Blocks() as app:
                                        global_state['show_mask'], global_state)
         return global_state, image_draw
 
+
     undo_points.click(on_click_clear_points,
                       inputs=[global_state],
                       outputs=[global_state, form_image])
+
 
     def on_click_show_mask(global_state, show_mask):
         """Function to control whether show mask on image."""
@@ -859,6 +886,7 @@ with gr.Blocks() as app:
             global_state,
         )
         return global_state, image_draw
+
 
     show_mask.change(
         on_click_show_mask,

@@ -27,7 +27,7 @@ from viz import capture_widget
 #----------------------------------------------------------------------------
 
 class Visualizer(imgui_window.ImguiWindow):
-    def __init__(self, capture_dir=None):
+    def __init__(self, capture_dir=None, pt=""):
         super().__init__(title='DragGAN', window_width=3840, window_height=2160)
 
         # Internals.
@@ -51,7 +51,7 @@ class Visualizer(imgui_window.ImguiWindow):
 
         # Widgets.
         self.pickle_widget      = pickle_widget.PickleWidget(self)
-        self.latent_widget      = latent_widget.LatentWidget(self)
+        self.latent_widget      = latent_widget.LatentWidget(self, pt)
         self.drag_widget        = drag_widget.DragWidget(self)
         self.capture_widget     = capture_widget.CaptureWidget(self)
 
@@ -350,16 +350,18 @@ class AsyncRenderer:
 @click.argument('pkls', metavar='PATH', nargs=-1)
 @click.option('--capture-dir', help='Where to save screenshot captures', metavar='PATH', default=None)
 @click.option('--browse-dir', help='Specify model path for the \'Browse...\' button', metavar='PATH')
+@click.option("--pt", help="where is the latent code, if empty means no", metavar="PATH", default="")
 def main(
     pkls,
     capture_dir,
-    browse_dir
+    browse_dir,
+    pt
 ):
     """Interactive model visualizer.
 
     Optional PATH argument can be used specify which .pkl file to load.
     """
-    viz = Visualizer(capture_dir=capture_dir)
+    viz = Visualizer(capture_dir=capture_dir, pt=pt)
 
     if browse_dir is not None:
         viz.pickle_widget.search_dirs = [browse_dir]
